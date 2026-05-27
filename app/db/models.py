@@ -30,6 +30,7 @@ class User(Base):
     subscription_tier: Mapped[SubscriptionTier] = mapped_column(default=SubscriptionTier.FREE)
     xp_points: Mapped[int] = mapped_column(Integer, default=0)
     league: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    last_tip_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
 
 
 class HabitStreak(Base):
