@@ -1,0 +1,8 @@
+fastapi>=0.100.0
+aiogram>=3.0.0
+sqlalchemy>=2.0.0
+alembic
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+uvicorn
+aiosqlite
