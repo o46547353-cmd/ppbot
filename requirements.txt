@@ -7,3 +7,4 @@ pydantic-settings>=2.0.0
 uvicorn
 aiosqlite
 openai>=1.0.0
+apscheduler>=3.10.0

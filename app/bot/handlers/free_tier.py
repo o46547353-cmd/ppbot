@@ -9,12 +9,16 @@ from sqlalchemy.future import select
 from app.db.database import AsyncSessionLocal
 from app.db.models import User, SubscriptionTier
 from app.services.ai_client import ai_client
+from app.services.gamification import award_xp
 
 router = Router()
 
 class BMIQuickStates(StatesGroup):
     waiting_for_height = State()
     waiting_for_weight = State()
+
+class HabitCheckinStates(StatesGroup):
+    waiting_for_response = State()
 
 @router.message(Command("bmi_quick"))
 async def cmd_bmi_quick(message: Message, state: FSMContext):
@@ -87,6 +91,37 @@ async def process_weight(message: Message, state: FSMContext):
     )
 
     await message.answer(result_text, parse_mode="HTML", reply_markup=teaser_keyboard)
+
+    # Award XP for BMI check
+    new_xp, new_league, league_changed = await award_xp(message.from_user.id, 10)
+    if league_changed:
+        await message.answer(f"🎉 Поздравляем! Вы перешли в новую лигу: <b>{new_league}</b>!\nТекущий опыт: {new_xp} XP", parse_mode="HTML")
+
+    await state.clear()
+
+
+@router.message(HabitCheckinStates.waiting_for_response)
+async def process_habit_checkin_response(message: Message, state: FSMContext):
+    """
+    Handles the user's response to the daily habit check-in.
+    Uses AI to generate a supportive and motivating reply.
+    """
+    user_response = message.text
+    data = await state.get_data()
+    streak_days = data.get('streak_days', 0)
+    saved_money = data.get('saved_money', 0)
+
+    prompt = (
+        f"Пользователь ответил на ежедневный чекин привычки: '{user_response}'. "
+        f"Его стрик без срывов составляет {streak_days} дней. Он уже сэкономил {saved_money} рублей. "
+        f"Напиши короткий, мотивирующий и поддерживающий ответ (максимум 2-3 предложения), "
+        f"чтобы он продолжал в том же духе. Обратись к нему как к чемпиону."
+    )
+
+    loading_message = await message.answer("Печатаю ответ... ✍️")
+    ai_reply = await ai_client.generate_text(prompt=prompt)
+
+    await loading_message.edit_text(ai_reply)
     await state.clear()
 
 

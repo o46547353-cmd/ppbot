@@ -10,6 +10,8 @@ from app.db.database import AsyncSessionLocal
 from app.db.models import User, SubscriptionTier
 from app.services.vision_analyzer import photo_dietologist
 from app.services.workout_generator import iron_coach
+from app.services.gamification import award_xp
+from app.services.cross_sell import cross_sell_engine
 
 router = Router()
 
@@ -111,4 +113,15 @@ async def process_equipment(message: Message, state: FSMContext):
         markdown_text += "\n"
 
     await loading_message.edit_text(markdown_text, parse_mode="HTML")
+
+    # Award XP for generating a workout plan
+    new_xp, new_league, league_changed = await award_xp(message.from_user.id, 50)
+    if league_changed:
+        await message.answer(f"🎉 Поздравляем! Вы перешли в новую лигу: <b>{new_league}</b>!\nТекущий опыт: {new_xp} XP", parse_mode="HTML")
+
+    # Contextual Cross-sell
+    upsell_msg = await cross_sell_engine.analyze_and_suggest(message.from_user.id, "workout_completed")
+    if upsell_msg:
+        await message.answer(upsell_msg, parse_mode="HTML")
+
     await state.clear()

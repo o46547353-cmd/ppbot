@@ -6,6 +6,7 @@ from aiogram.types import Update
 from app.core.config import settings
 from app.db.database import init_models
 from app.bot.handlers import router as main_router
+from app.services.habit_tracker import habit_tracker
 
 # Initialize bot and dispatcher
 bot = Bot(token=settings.BOT_TOKEN)
@@ -23,7 +24,13 @@ async def lifespan(app: FastAPI):
     # Startup: Set webhook
     await bot.set_webhook(url=settings.WEBHOOK_URL)
 
+    # Startup: Start habit tracker scheduler
+    habit_tracker.setup(bot, dp)
+
     yield
+
+    # Shutdown: Stop habit tracker scheduler
+    habit_tracker.shutdown()
 
     # Shutdown: Remove webhook and close bot session
     await bot.delete_webhook()
